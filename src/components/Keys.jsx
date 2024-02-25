@@ -23,18 +23,18 @@ export default function Keys({ synthKeys, showKeys, onKeyAction }) {
     const keyNameToShow = showKeys.musicKeys ? displayName : showKeys.computerKeys ? computerKey : '';
 
     return (
-      // Her tuş için bir buton döndürülür.
       <button
-        key={keyName} // React listelerinde benzersiz bir anahtar.
-        className={keyClassName} // Yukarıda oluşturulan CSS sınıf adları.
-        data-note={keyName} // Butonun temsil ettiği nota adı (data attribute ile).
-        onMouseDown={() => handleMouseDown(keyName)} // Fare ile tuşa basıldığında çağrılır.
-        onMouseUp={() => handleMouseUp(keyName)} // Fare ile tuş bırakıldığında çağrılır.
+        key={keyName}
+        className={keyClassName}
+        data-note={keyName}
+        onMouseDown={() => handleMouseDown(keyName)}
+        onMouseUp={() => handleMouseUp(keyName)}
+        // autoFocus attribute removed for simplification
       >
-        {keyNameToShow} // Buton üzerinde gösterilecek metin.
+        {keyNameToShow}
       </button>
     );
   });
 
-  return <div className='keys-container'>{keyButtons}</div>; // Oluşturulan butonların tümü bir div içinde döndürülür.
+  return <div className='keys-container'>{keyButtons}</div>;
 }
