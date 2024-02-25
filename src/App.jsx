@@ -144,15 +144,7 @@ export default function App() {
     )
   }
 
-  function playNote(note) {
-    let audio = new Audio(note)
-    audio.volume = volume / 100
-    audio.playbackRate =
-      playbackRate <= 10 ? playbackRate / 10 : playbackRate - 9
-    audio.loop = loop
-    audio.play()
-    loop && setLoopingNotes([...loopingNotes, audio])
-  }
+  
 
   const propsBundle = {
     currentInstrument,
@@ -203,44 +195,56 @@ export default function App() {
 					- keyUp -> hedef nesnenin keyPressed özelliği = false 
 
 */
-// Kullanıcı bir bilgisayar tuşuna bastığında tetiklenecek olan fonksiyon
-const handleKeyPress = (event) => {
-  const clickedKeyName = event.target.getAttribute('data-key');
-  const clickedKey = synthKeys.find((key) => key.keyName === clickedKeyName);
-  if (clickedKey && !clickedKey.active) {
-    setSynthKeys((prevKeys) =>
-      prevKeys.map((key) =>
-        key === clickedKey ? { ...key, active: true, keyPressed: true } : key
-      )
-    );
-  }
-};
 
-// Kullanıcı bir tuşa basarak çaldığında tetiklenecek olan fonksiyon
-const handleKeyDown = (event) => {
-  const pressedKey = synthKeys.find((key) => key.computerKey === event.key.toLowerCase());
-  if (pressedKey && !pressedKey.active) {
-    setSynthKeys((prevKeys) =>
-      prevKeys.map((key) =>
-        key === pressedKey ? { ...key, active: true, keyPressed: true } : key
-      )
-    );
-  }
-};
+useEffect(() => {
+// Kullanıcı bir tuşu bastiginda tetiklenecek olan fonksiyon
+  const handleKeyDown = (event) => {
+    // 1. Klavyeden basılan tuşa karşılık gelen synth tuşunu bulur
+    const pressedKey = synthKeys.find(key => key.computerKey === event.key.toLowerCase());
+    
+    // 2. Eğer bir tuş bulunduysa ve tuş daha önce basılmamışsa devam eder
+    if (pressedKey && !pressedKey.keyPressed) {
+      // 3. Synth tuşlarını günceller ve basılan tuşu etkinleştirir
+      setSynthKeys(prevKeys =>
+        prevKeys.map(key =>
+          // 4. Eğer tuş bulunan tuşa karşılık geliyorsa, tuş durumunu günceller
+          key.keyName === pressedKey.keyName ? { ...key, active: true, keyPressed: true } : key
+        )
+      );
+    }
+  };
+  
 
 // Kullanıcı bir tuşu bıraktığında tetiklenecek olan fonksiyon
 const handleKeyRelease = (event) => {
+  // Bu satır, tuş bırakma (`keyup`) olayının tetiklendiğini ve hangi tuşun bırakıldığını konsola yazdırır.
+  console.log(`KeyUp Event Triggered: ${event.key}`);
+
+  // `event.key` kullanarak, bırakılan tuşa karşılık gelen `synthKeys` dizisindeki nesneyi bulur.
+  // `toLowerCase()` metodu, büyük harf/küçük harf duyarlılığı sorunlarını önlemek için kullanılır.
   const releasedKey = synthKeys.find((key) => key.computerKey === event.key.toLowerCase());
-  if (releasedKey && releasedKey.active) {
+
+  // Eğer bir tuşa karşılık gelen bir nesne bulunursa, bu blok çalışır.
+  if (releasedKey) {
+    // Hangi tuşun bırakıldığını konsola yazdırır. Bu, hata ayıklama sırasında yararlı olabilir.
+    console.log(`Released Key: ${releasedKey.keyName}`);
+
+    // `setSynthKeys` fonksiyonu, `synthKeys` dizisinin güncellenmiş bir kopyasını oluşturur.
+    // Bu, React'te state'i doğru bir şekilde güncellemek için kullanılan bir yaklaşımdır.
     setSynthKeys((prevKeys) =>
+      // `prevKeys.map` metodu, `synthKeys` dizisindeki her nesneyi döngüye sokar.
       prevKeys.map((key) =>
-        key === releasedKey ? { ...key, active: false, keyPressed: false } : key
+        // Eğer döngüdeki nesne, bırakılan tuşa karşılık gelen nesne ise,
+        // nesnenin `active` ve `keyPressed` özelliklerini `false` olarak günceller.
+        key.keyName === releasedKey.keyName ? { ...key, active: false, keyPressed: false } : key
+        // Diğer tüm nesneler olduğu gibi kalır.
+        // Bu, yalnızca hedeflenen nesnenin durumunu değiştirirken, diğerlerini değiştirmemeyi sağlar.
       )
     );
   }
 };
 
-useEffect(() => {
+
   // Event listener'ları ekleyelim
   document.addEventListener('keydown', handleKeyDown);
   document.addEventListener('keyup', handleKeyRelease);
@@ -249,26 +253,48 @@ useEffect(() => {
     document.removeEventListener('keydown', handleKeyDown);
     document.removeEventListener('keyup', handleKeyRelease);
   };
-}, []); // Bu effect sadece bir kere çalışsın
+}, [synthKeys]); // Bağımlılıklara synthKeys'i ekledik
+// Fare eylemi işlendiğinde çalışacak fonksiyonu tanımlayalım
+const handleMouseAction = (keyName, action) => {
+  // Synth tuşlarını günceller ve fare eylemine göre tuşu etkinleştirir veya devre dışı bırakır
+  setSynthKeys(prevKeys =>
+    prevKeys.map(key =>
+      key.keyName === keyName ? { ...key, active: action === 'down', keyPressed: action === 'down' } : key
+    )
+  );
+};
+
+function playNote(note) {
+  // 'note' parametresiyle bir yeni Audio nesnesi oluşturulur. Bu parametre, çalınacak ses dosyasının yoludur.
+  let audio = new Audio(note);
+
+  // Audio nesnesinin ses seviyesi ayarlanır. 'volume' state'i yüzde olarak saklandığı için, 100'e bölünerek Audio API'sinin beklediği aralığa (0.0 - 1.0) çevrilir.
+  audio.volume = volume / 100;
+
+  // Audio nesnesinin playbackRate (oynatma hızı) ayarlanır. playbackRate, 10 veya altında ise, doğrudan 10'a bölünerek ayarlanır; 10'dan büyükse, 9 çıkarılır. Bu, oynatma hızını ayarlamak için özel bir mantık olabilir.
+  audio.playbackRate = playbackRate <= 10 ? playbackRate / 10 : playbackRate - 9;
+
+  // Audio nesnesinin loop (döngü) özelliği, 'loop' state'ine göre ayarlanır. Eğer 'loop' true ise, ses dosyası sürekli tekrarlanır.
+  audio.loop = loop;
+
+  // Audio.play() metodu çağrılır. Bu metot, ses dosyasının oynatılmasını başlatır ve bir Promise döndürür. Bu, asenkron bir işlemdir.
+  audio.play().then(() => {
+    // Eğer 'loop' true ise ve ses dosyası başarıyla oynatılmaya başlanırsa, bu ses dosyası 'loopingNotes' array'ine eklenir. Bu, döngüde oynatılan ses dosyalarını takip etmek için kullanılabilir.
+    if (loop) {
+      setLoopingNotes([...loopingNotes, audio]);
+    }
+  }).catch((error) => {
+    // Eğer ses dosyası oynatılamazsa (örneğin, dosya bulunamazsa veya bir hata oluşursa), bu hata yakalanır ve konsola yazdırılır. Bu, hata ayıklama sırasında yararlıdır.
+    console.error("Ses dosyası oynatılamadı", error);
+  });
+}
 
 return (
   <div className='wrapper'>
-    <div className='main-container' onClick={handleKeyPress}>
+    <div className='main-container'>
       <Settings {...propsBundle} />
-      <Keys showKeys={showKeys} synthKeys={synthKeys} />
+      <Keys showKeys={showKeys} synthKeys={synthKeys} onKeyAction={handleMouseAction} />
     </div>
   </div>
 );
 }
-//Ne tür bir olay?
-
-//Bu olaylar fare tıklamaları (mouseDown ve mouseUp) veya klavye tuş basma ve bırakma olayları (keyDown ve keyUp) gibi kullanıcı etkileşimlerini temsil eder.
-//Olay synthKey state nesnelerinden birine karşılık geliyor mu?
-
-//Eğer kullanıcı bir synth tuşuna tıklarsa veya klavyeden bir tuşa basarsa, bu olay synthKeys state nesnelerinden birine karşılık gelir.
-//Eğer öyleyse, hangisi? (Buna hedef nesne deyin.)
-
-//Hangi synth tuşuna tıkladığını veya hangi klavye tuşunu bastığını belirlemek için, tıklanan veya basılan tuşun bilgisayar tuşu (computerKey) özelliğini synthKeys state dizisindeki nesnelerle karşılaştırabiliriz. Böylece, hedef nesneyi belirleyebiliriz.
-//synthKeys state dizisini güncelleyin:Hedef nesneyi güncellemek için, belirlenen nesnenin active özelliğini true olarak ayarlamalıyız.
-//Klavyeden bir tuşa basıldığında, ayrıca hedef nesnenin keyPressed özelliğini de true olarak ayarlamalıyız.
-//Klavyeden bir tuş bırakıldığında, hedef nesnenin keyPressed özelliğini false olarak ayarlamalıyız.

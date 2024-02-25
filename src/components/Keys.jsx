@@ -1,25 +1,35 @@
-export default function Keys({ synthKeys, showKeys }) {
+export default function Keys({ synthKeys, showKeys, onKeyAction }) {
+  const handleMouseDown = (keyName) => {
+    onKeyAction(keyName, 'down');
+  };
+
+  const handleMouseUp = (keyName) => {
+    onKeyAction(keyName, 'up');
+  };
+
   const keyButtons = synthKeys.map((key) => {
-    const { displayName, computerKey, keyName, color } = key
-    const activeClass = key.keyPressed ? 'active' : undefined
-    const keyClassName = ['key', keyName, color, activeClass].join(' ')
+    const { displayName, computerKey, keyName, color } = key;
+    const activeClass = key.keyPressed ? 'active' : '';
+    const keyClassName = ['key', keyName, color, activeClass].join(' ');
     const keyNameToShow = showKeys.musicKeys
       ? displayName
       : showKeys.computerKeys
       ? computerKey
-      : ''
+      : '';
 
     return (
       <button
         key={keyName}
         className={keyClassName}
         data-note={keyName}
-        autoFocus={keyName === 'c2' ? true : false}
+        onMouseDown={() => handleMouseDown(keyName)}
+        onMouseUp={() => handleMouseUp(keyName)}
+        // autoFocus attribute removed for simplification
       >
         {keyNameToShow}
       </button>
-    )
-  })
+    );
+  });
 
-  return <div className='keys-container'>{keyButtons}</div>
+  return <div className='keys-container'>{keyButtons}</div>;
 }
